@@ -43,7 +43,7 @@ function LeadEditForm({ lead, onUpdateSuccess, onCancel }) {
     }
 
     try {
-      const response = await fetch(`http://localhost:5001/api/leads/${lead._id}`, {
+      const response = await fetch(`/api/leads/${lead._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

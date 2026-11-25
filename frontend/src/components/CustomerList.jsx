@@ -32,7 +32,7 @@ function CustomerList() {
           }
 
           // URL changed to fetch customers
-          const url = `http://localhost:5001/api/customers?search=${searchTerm}&page=${currentPage}&limit=10`;
+          const url = `/api/customers?search=${encodeURIComponent(searchTerm)}&page=${currentPage}&limit=10`;
 
           const response = await fetch(url, {
             method: "GET",
@@ -103,7 +103,7 @@ function CustomerList() {
       const token = localStorage.getItem("token");
       // API path changed for customers
       const response = await fetch(
-        `http://localhost:5001/api/customers/${idToDelete}`,
+        `/api/customers/${idToDelete}`,
         {
           method: "DELETE",
           headers: { "x-auth-token": token },
@@ -135,14 +135,19 @@ function CustomerList() {
 
   // JSX structure and logic mirrored for customers
   return (
-    <div>
+    <div className="resource-page resource-customers">
       <ConfirmModal
         isOpen={isModalOpen}
         message="Are you sure you want to delete this customer?"
         onConfirm={confirmDelete}
         onCancel={closeDeleteModal}
       />
-      <div style={{ marginBottom: "20px" }}>
+      <div className="resource-header">
+        <div>
+          <p className="page-eyebrow">CUSTOMER RELATIONSHIPS</p>
+          <h2>Customers</h2>
+          <p>Keep customer details, conversations, and company information organized.</p>
+        </div>
         {!showForm && !editingCustomer && (
           <button className="btn btn-success" onClick={() => setShowForm(true)}>
             Add New Customer
@@ -163,10 +168,8 @@ function CustomerList() {
         />
       )}
 
-      <h3>Your Customers</h3>
       <div
-        className="form-group"
-        style={{ maxWidth: "400px", marginBottom: "20px" }}
+        className="form-group resource-search"
       >
         <input
           type="text"
@@ -176,7 +179,6 @@ function CustomerList() {
             setSearchTerm(e.target.value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", boxSizing: "border-box" }}
         />
       </div>
 
@@ -192,7 +194,7 @@ function CustomerList() {
         </p>
       ) : (
         <>
-          <table className="table-styled">
+          <table className="table-styled resource-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -233,14 +235,7 @@ function CustomerList() {
             </tbody>
           </table>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "20px",
-            }}
-          >
+          <div className="pagination-bar">
             <button
               className="btn btn-secondary"
               onClick={handlePreviousPage}

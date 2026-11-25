@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import AuthContext from '../context/AuthContextValue';
 import toast from 'react-hot-toast';
 import '../FormStyles.css';
 
@@ -29,7 +29,7 @@ function OpportunityForm({ onOpportunityAdded, onCancel }) {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/customers', {
+        const response = await fetch('/api/customers', {
           headers: { 'x-auth-token': token },
         });
         if (!response.ok) throw new Error('Could not load customers');
@@ -70,7 +70,7 @@ function OpportunityForm({ onOpportunityAdded, onCancel }) {
 
     try {
       // First, create the opportunity record
-      const oppResponse = await fetch('http://localhost:5001/api/opportunities', {
+      const oppResponse = await fetch('/api/opportunities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ function OpportunityForm({ onOpportunityAdded, onCancel }) {
         formData.append('relatedTo', savedOpportunity._id);
         formData.append('relatedModel', 'Opportunity');
 
-        const fileResponse = await fetch('http://localhost:5001/api/files/upload', {
+        const fileResponse = await fetch('/api/files/upload', {
           method: 'POST',
           headers: { 'x-auth-token': token },
           body: formData,

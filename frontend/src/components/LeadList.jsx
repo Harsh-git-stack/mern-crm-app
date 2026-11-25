@@ -31,7 +31,7 @@ function LeadList() {
             return;
           }
 
-          const url = `http://localhost:5001/api/leads?search=${searchTerm}&page=${currentPage}&limit=10`;
+          const url = `/api/leads?search=${encodeURIComponent(searchTerm)}&page=${currentPage}&limit=10`;
 
           const response = await fetch(url, {
             method: "GET",
@@ -98,7 +98,7 @@ function LeadList() {
       const token = localStorage.getItem("token");
       // --- Note the change to the API path ---
       const response = await fetch(
-        `http://localhost:5001/api/leads/${idToDelete}`,
+        `/api/leads/${idToDelete}`,
         {
           method: "DELETE",
           headers: { "x-auth-token": token },
@@ -129,7 +129,7 @@ function LeadList() {
   };
 
   return (
-    <div>
+    <div className="resource-page resource-leads">
       {/* Add/Edit Form Logic */}
       <ConfirmModal
         isOpen={isModalOpen}
@@ -137,7 +137,12 @@ function LeadList() {
         onConfirm={confirmDelete}
         onCancel={closeDeleteModal}
       />
-      <div style={{ marginBottom: "20px" }}>
+      <div className="resource-header">
+        <div>
+          <p className="page-eyebrow">SALES PROSPECTS</p>
+          <h2>Leads</h2>
+          <p>Track new prospects and move promising conversations forward.</p>
+        </div>
         {!showForm && !editingLead && (
           <button className="btn btn-success" onClick={() => setShowForm(true)}>
             Add New Lead
@@ -155,12 +160,8 @@ function LeadList() {
         />
       )}
 
-      <h3>Your Leads</h3>
-
-      {/* Search Input */}
       <div
-        className="form-group"
-        style={{ maxWidth: "400px", marginBottom: "20px" }}
+        className="form-group resource-search"
       >
         <input
           type="text"
@@ -170,7 +171,6 @@ function LeadList() {
             setSearchTerm(e.target.value);
             setCurrentPage(1);
           }}
-          style={{ width: "100%", boxSizing: "border-box" }}
         />
       </div>
 
@@ -185,7 +185,7 @@ function LeadList() {
         </p>
       ) : (
         <>
-          <table className="table-styled">
+          <table className="table-styled resource-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -227,14 +227,7 @@ function LeadList() {
           </table>
 
           {/* Pagination Controls */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: "20px",
-            }}
-          >
+          <div className="pagination-bar">
             <button
               className="btn btn-secondary"
               onClick={handlePreviousPage}

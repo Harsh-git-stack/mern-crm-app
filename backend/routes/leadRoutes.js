@@ -30,7 +30,7 @@ router.get('/', auth, async (req, res) => {
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
 
-    let query = { owner: req.user.id };
+    let query = req.user.role === 'admin' ? {} : { owner: req.user.id };
 
     if (search) {
       const searchRegex = new RegExp(search, 'i');
@@ -69,7 +69,9 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const lead = await Lead.findOne({ _id: req.params.id, owner: req.user.id });
+    const leadQuery = { _id: req.params.id };
+    if (req.user.role !== 'admin') leadQuery.owner = req.user.id;
+    const lead = await Lead.findOne(leadQuery);
 
     if (!lead) {
       return res.status(404).json({ msg: 'Lead not found' });
@@ -90,14 +92,18 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.patch('/:id', auth, async (req, res) => {
   try {
-    let lead = await Lead.findOne({ _id: req.params.id, owner: req.user.id });
+    const leadQuery = { _id: req.params.id };
+    if (req.user.role !== 'admin') leadQuery.owner = req.user.id;
+    const lead = await Lead.findOne(leadQuery);
 
     if (!lead) {
       return res.status(404).json({ msg: 'Lead not found' });
     }
 
-    // Update the lead fields
-    Object.assign(lead, req.body);
+    const allowedFields = ['name', 'email', 'phone', 'status', 'source', 'notes'];
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) lead[field] = req.body[field];
+    }
     await lead.save();
 
     res.json(lead);
@@ -115,7 +121,9 @@ router.patch('/:id', auth, async (req, res) => {
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const lead = await Lead.findOneAndDelete({ _id: req.params.id, owner: req.user.id });
+    const leadQuery = { _id: req.params.id };
+    if (req.user.role !== 'admin') leadQuery.owner = req.user.id;
+    const lead = await Lead.findOneAndDelete(leadQuery);
 
     if (!lead) {
       return res.status(404).json({ msg: 'Lead not found' });

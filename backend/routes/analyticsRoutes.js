@@ -13,26 +13,26 @@ const Opportunity = require('../models/Opportunity');
 // @access  Private
 router.get('/summary', auth, async (req, res) => {
   try {
-    const userId = req.user.id; // Get the user's ID from the auth token
+    const isAdmin = req.user.role === 'admin';
+    const customerQuery = isAdmin ? {} : { user: req.user.id };
+    const leadQuery = isAdmin ? {} : { owner: req.user.id };
+    const opportunityQuery = isAdmin ? {} : { user: req.user.id };
 
-    // --- QUERIES NOW USE THE CORRECT FIELD NAME FOR EACH MODEL ---
-
-    // 1. Count Customers and Opportunities using the 'user' field
-    const totalCustomers = await Customer.countDocuments({ user: userId });
-    const totalOpportunities = await Opportunity.countDocuments({ user: userId });
-
-    // 2. Count Leads using the 'owner' field
-    const totalLeads = await Lead.countDocuments({ owner: userId });
-
-    // 3. Fetch recent customers using the 'user' field
-    const recentCustomers = await Customer.find({ user: userId })
+    const [totalCustomers, totalLeads, totalOpportunities, recentCustomers] = await Promise.all([
+      Customer.countDocuments(customerQuery),
+      Lead.countDocuments(leadQuery),
+      Opportunity.countDocuments(opportunityQuery),
+      Customer.find(customerQuery)
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('name company');
+      .select('name company'),
+    ]);
 
-    // 4. Aggregate sales pipeline from Opportunities using the 'user' field
-    const salesPipeline = await Opportunity.aggregate([
-      { $match: { user: new mongoose.Types.ObjectId(userId) } },
+    const pipeline = [];
+    if (!isAdmin) {
+      pipeline.push({ $match: { user: new mongoose.Types.ObjectId(req.user.id) } });
+    }
+    pipeline.push(
       {
         $group: {
           _id: '$stage',
@@ -41,9 +41,9 @@ router.get('/summary', auth, async (req, res) => {
         },
       },
       { $sort: { _id: 1 } },
-    ]);
+    );
+    const salesPipeline = await Opportunity.aggregate(pipeline);
 
-    // Assemble the final, correct response payload
     const summary = {
       totalCounts: {
         customers: totalCustomers,
@@ -52,6 +52,7 @@ router.get('/summary', auth, async (req, res) => {
       },
       salesPipeline,
       recentCustomers,
+      ...(isAdmin ? { totalUsers: await require('../models/User').countDocuments() } : {}),
     };
 
     res.json(summary);

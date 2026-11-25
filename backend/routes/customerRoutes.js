@@ -11,7 +11,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const { search, page = 1, limit = 10 } = req.query;
     
-    const query = { user: req.user.id };
+    const query = req.user.role === 'admin' ? {} : { user: req.user.id };
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -80,7 +80,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     let customer = await Customer.findById(req.params.id);
     if (!customer) return res.status(404).json({ msg: 'Customer not found' });
-    if (customer.user.toString() !== req.user.id) {
+    if (req.user.role !== 'admin' && customer.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
     await Customer.findByIdAndDelete(req.params.id);
@@ -98,13 +98,19 @@ router.patch('/:id', auth, async (req, res) => {
     try {
         let customer = await Customer.findById(req.params.id);
         if (!customer) return res.status(404).json({ msg: 'Customer not found' });
-        if (customer.user.toString() !== req.user.id) {
+        if (req.user.role !== 'admin' && customer.user.toString() !== req.user.id) {
             return res.status(401).json({ msg: 'Not authorized' });
         }
+        const allowedFields = ['name', 'email', 'phone', 'address', 'company'];
+        const updates = Object.fromEntries(
+          allowedFields
+            .filter((field) => req.body[field] !== undefined)
+            .map((field) => [field, req.body[field]])
+        );
         const updatedCustomer = await Customer.findByIdAndUpdate(
             req.params.id,
-            { $set: req.body },
-            { new: true }
+            { $set: updates },
+            { new: true, runValidators: true }
         );
         res.json(updatedCustomer);
     } catch (err) {

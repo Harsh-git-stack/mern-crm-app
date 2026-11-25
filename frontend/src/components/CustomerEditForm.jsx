@@ -39,7 +39,7 @@ function CustomerEditForm({ customer, onUpdateSuccess, onCancel }) {
 
     try {
       // Make a PATCH request to the specific customer's ID
-      const response = await fetch(`http://localhost:5001/api/customers/${customer._id}`, {
+      const response = await fetch(`/api/customers/${customer._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -37,7 +37,7 @@ function Dashboard() {
               setLoading(false);
               return;
             }
-            const response = await fetch('http://localhost:5001/api/analytics/summary', {
+            const response = await fetch('/api/analytics/summary', {
               headers: { 'x-auth-token': token },
             });
             if (!response.ok) throw new Error('Failed to fetch dashboard data');
@@ -68,67 +68,86 @@ function Dashboard() {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top',
-      },
+      legend: { display: false },
       title: {
-        display: true,
-        text: 'Sales Pipeline by Stage',
+        display: false,
       },
+    },
+    scales: {
+      x: { grid: { display: false }, border: { display: false } },
+      y: { grid: { color: '#edf0f5' }, border: { display: false }, beginAtZero: true },
     },
   };
 
-  if (loading) return <p>Loading dashboard...</p>;
+  if (loading) return <div className="loading-state">Preparing your workspace...</div>;
   if (error) return <p className="error-message">Error: {error}</p>;
   if (!summary) return <p>No summary data available.</p>;
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>A high-level overview of your CRM activity.</p>
-
-      {/* Statistics Cards */}
+    <div className="dashboard-page">
+      <div className="page-intro">
+        <div>
+          <p className="page-eyebrow">YOUR BUSINESS AT A GLANCE</p>
+          <h2>Good work starts with a clear view.</h2>
+          <p>Here’s what’s happening across your customer relationships.</p>
+        </div>
+      </div>
       <div className="dashboard-grid">
         <div className="stat-card">
-          <h3>Total Customers</h3>
+          <span className="stat-label">Total customers</span>
           <p className="stat-number">{summary.totalCounts.customers}</p>
+          <span className="stat-caption">In your workspace</span>
         </div>
         <div className="stat-card">
-          <h3>Total Leads</h3>
+          <span className="stat-label">Active leads</span>
           <p className="stat-number">{summary.totalCounts.leads}</p>
+          <span className="stat-caption">Across all statuses</span>
         </div>
         <div className="stat-card">
-          <h3>Total Opportunities</h3>
+          <span className="stat-label">Opportunities</span>
           <p className="stat-number">{summary.totalCounts.opportunities}</p>
+          <span className="stat-caption">In your sales pipeline</span>
         </div>
       </div>
 
-      {/* Bar Chart */}
       {summary.salesPipeline.length > 0 ? (
         <div className="chart-container">
+          <div className="section-heading">
+            <div>
+              <h3>Sales pipeline</h3>
+              <p>Opportunity value by current stage</p>
+            </div>
+            <span className="section-chip">Pipeline</span>
+          </div>
           <Bar options={chartOptions} data={pipelineData} />
         </div>
       ) : (
-        <div className="chart-container" style={{ textAlign: 'center' }}>
-          <h3>Sales Pipeline</h3>
-          <p>No opportunity data available to display a chart.</p>
+        <div className="chart-container empty-chart">
+          <h3>Sales pipeline</h3>
+          <p>Your opportunity stages will appear here once opportunities are added.</p>
         </div>
       )}
 
-      {/* Recent Activity List */}
-      <div className="recent-activity-card" style={{ marginTop: '30px' }}>
-        <h3>Recently Added Customers</h3>
+      <div className="recent-activity-card">
+        <div className="section-heading">
+          <div>
+            <h3>Recently added customers</h3>
+            <p>Your latest relationship updates</p>
+          </div>
+        </div>
         {summary.recentCustomers.length > 0 ? (
           <ul>
             {summary.recentCustomers.map(customer => (
               <li key={customer._id}>
-                <strong>{customer.name}</strong> ({customer.company || 'N/A'})
+                <span className="customer-avatar">{customer.name?.charAt(0)?.toUpperCase() || 'C'}</span>
+                <span><strong>{customer.name}</strong><small>{customer.company || 'Independent customer'}</small></span>
               </li>
             ))}
           </ul>
         ) : (
-          <p>No recent customers to display.</p>
+          <p className="muted-copy">No customers yet. Add your first customer to get started.</p>
         )}
       </div>
     </div>

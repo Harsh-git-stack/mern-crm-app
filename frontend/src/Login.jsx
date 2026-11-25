@@ -1,14 +1,14 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from './context/AuthContext';
+import AuthContext from './context/AuthContextValue';
 import './FormStyles.css'; // Using our shared styles
 
 function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: 'admin@gmail.com', // Pre-filled for convenience
-    password: 'password'      // Pre-filled for convenience
+    email: '',
+    password: ''
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ function Login() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth', {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,10 +34,28 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const responseBody = await response.text();
+      let data;
+      try {
+        data = responseBody ? JSON.parse(responseBody) : {};
+      } catch {
+        if (!response.ok) {
+          throw new Error(
+            `Login failed with HTTP ${response.status}. Check that the backend is running and connected to MongoDB.`
+          );
+        }
+        throw new Error('The login service returned an invalid response. Please try again or check the backend.');
+      }
 
       if (!response.ok) {
-        throw new Error(data.msg || 'Login failed. Please check your credentials.');
+        throw new Error(
+          data.msg ||
+          data.errors?.[0]?.msg ||
+          `Login failed with HTTP ${response.status}. Check that the backend is running.`
+        );
+      }
+      if (!data.token || !data.user) {
+        throw new Error('The login service response was incomplete. Please check the backend logs.');
       }
 
       // On successful login, update the global state via context
@@ -54,9 +72,12 @@ function Login() {
   };
 
   return (
-    <div className="form-container">
+    <div className="auth-page">
       <div className="form-box">
-        <h2>Login</h2>
+        <div className="auth-brand"><span className="brand-mark">P</span><span>Pathway CRM</span></div>
+        <p className="auth-eyebrow">WELCOME BACK</p>
+        <h2>Sign in to your workspace</h2>
+        <p className="auth-description">Manage customers, track leads, and keep your pipeline moving.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -81,17 +102,17 @@ function Login() {
             />
           </div>
 
-          {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '1rem' }}>{error}</p>}
+          {error && <p className="error-message">{error}</p>}
 
           <div className="form-buttons">
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>
         <div className="form-link">
-          <span>Don't have an account? </span>
-          <Link to="/register">Register here</Link>
+          <span>New to Pathway? </span>
+          <Link to="/register">Create an account</Link>
         </div>
       </div>
     </div>

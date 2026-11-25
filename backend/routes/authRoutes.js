@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // This line is now corrected
+const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 const User = require('../models/User');
 
@@ -11,7 +11,7 @@ const User = require('../models/User');
 router.post(
   '/',
   [
-    check('email', 'Please include a valid email').isEmail(),
+    check('email', 'Please include a valid email').isEmail().normalizeEmail(),
     check('password', 'Password is required').exists(),
   ],
   async (req, res) => {
@@ -23,9 +23,12 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      let user = await User.findOne({ email });
+      const user = await User.findOne({ email: email.trim().toLowerCase() });
       if (!user) {
         return res.status(400).json({ msg: 'Invalid Credentials' });
+      }
+      if (user.active === false) {
+        return res.status(403).json({ msg: 'This account has been suspended' });
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
@@ -36,26 +39,20 @@ router.post(
       const payload = {
         user: {
           id: user.id,
+          role: user.role || 'user',
         },
       };
 
-      jwt.sign(
-        payload,
-        process.env.JWT_SECRET,
-        { expiresIn: 3600 },
-        (err, token) => {
-          if (err) throw err;
-          res.json({
-            token,
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-            },
-          });
-        }
-      );
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role || 'user',
+        },
+      });
     } catch (err) {
       console.error(err.message);
       res.status(500).json({ msg: 'Server Error' });

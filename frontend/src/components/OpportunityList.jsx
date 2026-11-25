@@ -1,6 +1,6 @@
 import toast from "react-hot-toast";
 import React, { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import AuthContext from "../context/AuthContextValue";
 import OpportunityForm from "./OpportunityForm";
 import OpportunityEditForm from "./OpportunityEditForm";
 import ConfirmModal from "./ConfirmModal";
@@ -66,7 +66,7 @@ function OpportunityList() {
         }
         try {
           setLoading(true);
-          const url = `http://localhost:5001/api/opportunities?search=${searchTerm}&page=${currentPage}&limit=10`;
+          const url = `/api/opportunities?search=${encodeURIComponent(searchTerm)}&page=${currentPage}&limit=10`;
           const response = await fetch(url, { headers: { "x-auth-token": token } });
           if (!response.ok) {
             const errorData = await response.json();
@@ -97,7 +97,7 @@ function OpportunityList() {
     setLoadingFiles(true);
     setAttachedFiles([]);
     try {
-      const response = await fetch(`http://localhost:5001/api/files/Opportunity/${opportunityId}`, {
+      const response = await fetch(`/api/files/Opportunity/${opportunityId}`, {
         headers: { "x-auth-token": token },
       });
       if (!response.ok) throw new Error('Could not load attachments.');
@@ -111,6 +111,29 @@ function OpportunityList() {
     }
   };
 
+  const handleDownloadFile = async (file) => {
+    try {
+      const response = await fetch(`/api/files/download/${file._id}`, {
+        headers: { 'x-auth-token': token },
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'Could not download file.');
+      }
+
+      const downloadUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = file.originalname;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   const handleViewActivity = async (opportunityId) => {
     if (viewingActivityFor === opportunityId) {
       setViewingActivityFor(null);
@@ -119,7 +142,7 @@ function OpportunityList() {
     setViewingActivityFor(opportunityId);
     setLoadingActivities(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/activities/Opportunity/${opportunityId}`, {
+      const response = await fetch(`/api/activities/Opportunity/${opportunityId}`, {
         headers: { 'x-auth-token': token },
       });
       if (!response.ok) throw new Error('Could not load activity feed.');
@@ -162,7 +185,7 @@ function OpportunityList() {
   const confirmDelete = async () => {
     if (!idToDelete) return;
     try {
-      const response = await fetch(`http://localhost:5001/api/opportunities/${idToDelete}`, {
+      const response = await fetch(`/api/opportunities/${idToDelete}`, {
         method: "DELETE",
         headers: { "x-auth-token": token },
       });
@@ -188,10 +211,15 @@ function OpportunityList() {
   };
 
   return (
-    <div>
+    <div className="resource-page resource-opportunities">
       <ConfirmModal isOpen={isModalOpen} message="Are you sure you want to delete this opportunity?" onConfirm={confirmDelete} onCancel={closeDeleteModal} />
       
-      <div style={{ marginBottom: "20px" }}>
+      <div className="resource-header">
+        <div>
+          <p className="page-eyebrow">REVENUE PIPELINE</p>
+          <h2>Opportunities</h2>
+          <p>Review deal value, activity, and next steps across your pipeline.</p>
+        </div>
         {!showForm && !editingOpportunity && (
           <button className="btn btn-success" onClick={() => setShowForm(true)}>Add New Opportunity</button>
         )}
@@ -204,17 +232,15 @@ function OpportunityList() {
         <OpportunityEditForm opportunity={editingOpportunity} onUpdateSuccess={handleOpportunityUpdated} onCancel={handleCancelForm} />
       )}
 
-      <h3>Your Opportunities</h3>
-
-      <div className="form-group" style={{ maxWidth: "400px", marginBottom: "20px" }}>
-        <input type="text" placeholder="Search by title or stage..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} style={{ width: "100%", boxSizing: "border-box" }} />
+      <div className="form-group resource-search">
+        <input type="text" placeholder="Search by title or stage..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
       </div>
 
       {loading ? <p>Loading opportunities...</p> : error ? <p className="error-message">{error}</p> : opportunities.length === 0 ? (
         <p>{searchTerm ? `No results for "${searchTerm}".` : "No opportunities found."}</p>
       ) : (
         <>
-          <table className="table-styled">
+          <table className="table-styled resource-table">
             <thead>
               <tr>
                 <th>Title</th>
@@ -253,9 +279,9 @@ function OpportunityList() {
                             <ul>
                               {attachedFiles.map(file => (
                                 <li key={file._id}>
-                                  <a href={`http://localhost:5001/${file.path}`} target="_blank" rel="noopener noreferrer">
+                                  <button className="file-download-link" onClick={() => handleDownloadFile(file)}>
                                     {file.originalname}
-                                  </a>
+                                  </button>
                                   <span>({formatFileSize(file.size)})</span>
                                 </li>
                               ))}
@@ -291,7 +317,7 @@ function OpportunityList() {
             </tbody>
           </table>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px" }}>
+          <div className="pagination-bar">
             <button className="btn btn-secondary" onClick={handlePreviousPage} disabled={currentPage <= 1}>Previous</button>
             <span>Page {currentPage} of {totalPages}</span>
             <button className="btn btn-secondary" onClick={handleNextPage} disabled={currentPage >= totalPages}>Next</button>

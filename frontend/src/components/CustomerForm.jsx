@@ -25,7 +25,7 @@ function CustomerForm({ onCustomerAdded, onCancel }) {
       return;
     }
     try {
-      const response = await fetch('http://localhost:5001/api/customers', {
+      const response = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
         body: JSON.stringify(newCustomer),

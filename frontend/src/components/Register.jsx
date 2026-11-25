@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext'; // To log the user in after registration
+import AuthContext from '../context/AuthContextValue';
 import '../FormStyles.css'; // Using our shared styles
 
 function Register() {
@@ -24,7 +24,7 @@ function Register() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:5001/api/users/register', {
+      const response = await fetch('/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ function Register() {
 
       if (!response.ok) {
         // If the server returns an error (e.g., user already exists)
-        throw new Error(data.msg || 'Registration failed');
+        throw new Error(data.msg || data.errors?.[0]?.msg || 'Registration failed');
       }
 
       // On successful registration, the backend sends back a token and user object.
@@ -54,9 +54,12 @@ function Register() {
   };
 
   return (
-    <div className="form-container">
+    <div className="auth-page">
       <div className="form-box">
-        <h2>Register New User</h2>
+        <div className="auth-brand"><span className="brand-mark">P</span><span>Pathway CRM</span></div>
+        <p className="auth-eyebrow">GET STARTED</p>
+        <h2>Create your account</h2>
+        <p className="auth-description">Set up your workspace and start building stronger customer relationships.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name">Name</label>
@@ -71,15 +74,15 @@ function Register() {
             <input type="password" id="password" name="password" value={password} onChange={onChange} required minLength="6" />
           </div>
           
-          {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+          {error && <p className="error-message">{error}</p>}
           
           <button type="submit" disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
         <div className="form-link">
           <span>Already have an account? </span>
-          <Link to="/login">Login here</Link>
+          <Link to="/login">Sign in</Link>
         </div>
       </div>
     </div>

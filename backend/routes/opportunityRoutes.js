@@ -12,7 +12,7 @@ const { logActivity } = require('../services/activityService');
 router.get('/', auth, async (req, res) => {
   try {
     const { search, page = 1, limit = 10 } = req.query;
-    const query = { user: req.user.id };
+    const query = req.user.role === 'admin' ? {} : { user: req.user.id };
 
     if (search) {
       query.$or = [
@@ -42,7 +42,9 @@ router.get('/', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   const { title, customer: customerId, value, stage, expectedCloseDate, notes } = req.body;
   try {
-    const customer = await Customer.findOne({ _id: customerId, user: req.user.id });
+    const customerQuery = { _id: customerId };
+    if (req.user.role !== 'admin') customerQuery.user = req.user.id;
+    const customer = await Customer.findOne(customerQuery);
     if (!customer) {
       return res.status(404).json({ msg: 'Customer not found or does not belong to you' });
     }
@@ -77,14 +79,30 @@ router.patch('/:id', auth, async (req, res) => {
   try {
     let opportunity = await Opportunity.findById(req.params.id);
     if (!opportunity) return res.status(404).json({ msg: 'Opportunity not found' });
-    if (opportunity.user.toString() !== req.user.id) {
+    if (req.user.role !== 'admin' && opportunity.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    const allowedFields = ['title', 'customer', 'value', 'stage', 'expectedCloseDate', 'notes'];
+    const updates = Object.fromEntries(
+      allowedFields
+        .filter((field) => req.body[field] !== undefined)
+        .map((field) => [field, req.body[field]])
+    );
+
+    if (updates.customer) {
+      const customerQuery = { _id: updates.customer };
+      if (req.user.role !== 'admin') customerQuery.user = req.user.id;
+      const customer = await Customer.findOne(customerQuery);
+      if (!customer) {
+        return res.status(404).json({ msg: 'Customer not found or does not belong to you' });
+      }
     }
 
     // --- LOG ACTIVITY: UPDATE ---
     // Compare old stage with new stage to create a detailed log message
     const oldStage = opportunity.stage;
-    const newStage = req.body.stage;
+    const newStage = updates.stage;
     if (newStage && oldStage !== newStage) {
       await logActivity(
         req.user.id,
@@ -106,8 +124,8 @@ router.patch('/:id', auth, async (req, res) => {
 
     const updatedOpportunity = await Opportunity.findByIdAndUpdate(
       req.params.id,
-      { $set: req.body },
-      { new: true }
+      { $set: updates },
+      { new: true, runValidators: true }
     ).populate('customer', 'name company');
 
     res.json(updatedOpportunity);
@@ -123,7 +141,7 @@ router.delete('/:id', auth, async (req, res) => {
   try {
     const opportunity = await Opportunity.findById(req.params.id);
     if (!opportunity) return res.status(404).json({ msg: 'Opportunity not found' });
-    if (opportunity.user.toString() !== req.user.id) {
+    if (req.user.role !== 'admin' && opportunity.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
 

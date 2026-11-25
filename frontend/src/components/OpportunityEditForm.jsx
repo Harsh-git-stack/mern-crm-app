@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import AuthContext from '../context/AuthContextValue';
 import toast from 'react-hot-toast';
 import '../FormStyles.css'; // Import shared styles
 
@@ -27,7 +27,7 @@ function OpportunityEditForm({ opportunity, onUpdateSuccess, onCancel }) {
     const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
-        const response = await fetch('http://localhost:5001/api/customers', {
+        const response = await fetch('/api/customers', {
           headers: { 'x-auth-token': token },
         });
         if (!response.ok) throw new Error('Could not load customers');
@@ -72,7 +72,7 @@ function OpportunityEditForm({ opportunity, onUpdateSuccess, onCancel }) {
     };
 
     try {
-      const response = await fetch(`http://localhost:5001/api/opportunities/${opportunity._id}`, {
+      const response = await fetch(`/api/opportunities/${opportunity._id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
